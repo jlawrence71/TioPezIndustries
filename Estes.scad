@@ -1,39 +1,156 @@
+include <ThreadLib.scad>
+include <BOSL/constants.scad>
+use <BOSL/threading.scad>
+use <BOSL/shapes.scad>
+
 // There are standard estes tubes in mm.
-// Note some are engine tubes as well (Markes with ###)
+// Note some are engine tubes as well (Marks with ###)
 
 // ***************************
 // *** Standard Body Tubes ***
 // ***************************
 
-    BT_5_id   = 13.2;   BT_5_od   = 13.8;  // ###(13 mm motors - ½A3, A10, etc.) Small rockets, micromaxx adaptors
-    BT_20_id  = 18.0;   BT_20_od  = 18.7;  // ###(18 mm motors - A8, B6, C6 ) Engine mount for 18 mm motors (A–C)
-    BT_30_id  = 19.5;   BT_30_od  = 20.1;  // Rare, transitional
-    BT_50_id  = 24.1;   BT_50_od  = 24.8;  // ###(24 mm motors - C11, D12, E12, etc.) Engine mount for 24 mm motors (D/E), also used as main airframes
-    BT_52H_id = 29.0;   BT_52H_od = 30.7;  // ###(29 mm motors - Estes E16, F15, and Aerotech 29 mm composites)
-    BT_55_id  = 33.7;   BT_55_od  = 34.3;  // Widely used body size. Used as “stuffer tubes” as well
-    BT_56_id  = 40.5;   BT_56_od  = 41.6;  // Custom size, close to BT-60 ( "Transitional")
-    BT_60_id  = 40.5;   BT_60_od  = 41.6;  // Very common for larger rockets
-    BT_70_id  = 55.2;   BT_70_od  = 56.3;  // Big kits, Saturn 1B
-    BT_80_id  = 65.0;   BT_80_od  = 66.0;  // ###(Can hold 2 × 24 mm or 1 × 29 mm cluster) Large kits, Estes Saturn V.  
+    $BT_5_id   = 13.2;   $BT_5_od   = 13.8;  // ###(13 mm motors - ½A3, A10, etc.) Small rockets, micromaxx adaptors
+    $BT_20_id  = 18.0;   $BT_20_od  = 18.7;  // ###(18 mm motors - A8, B6, C6 ) Engine mount for 18 mm motors (A–C)
+    $BT_30_id  = 19.5;   $BT_30_od  = 20.1;  // Rare, transitional
+    $BT_50_id  = 24.1;   $BT_50_od  = 25.1;  //24.8;  // ###(24 mm motors - C11, D12, E12, etc.) Engine mount for 24 mm motors (D/E), also used as main airframes
+    $BT_52H_id = 29.0;   $BT_52H_od = 30.7;  // ###(29 mm motors - Estes E16, F15, and Aerotech 29 mm composites)
+    $BT_55_id  = 33.7;   $BT_55_od  = 34.3;  // Widely used body size. Used as “stuffer tubes” as well
+    $BT_56_id  = 40.5;   $BT_56_od  = 41.6;  // Custom size, close to BT-60 ( "Transitional")
+    $BT_60_id  = 40.5;   $BT_60_od  = 41.6;  // Very common for larger rockets
+    $BT_70_id  = 55.2;   $BT_70_od  = 56.3;  // Big kits, Saturn 1B
+    $BT_80_id  = 65.0;   $BT_80_od  = 66.0;  // ###(Can hold 2 × 24 mm or 1 × 29 mm cluster) Large kits, Estes Saturn V.  
 
 // ****************************
 // *** Engine Configuration ***
 // ****************************
 
     $estes_mini_len = 45;
-    $estes_mini_dia = 13;
+    $estes_mini_od  = 13;
 
     $estes_standard_len = 70;
-    $estes_standard_dia = 18;
+    $estes_standard_od  = 18;
 
     $estes_medium_len = 70;
-    $estes_medium_dia = 24;
+    $estes_medium_od  = 24;
     
     $estes_E_len     = 95;
-    $estes_E_dia     = 24;
+    $estes_E_od      = 24;
 
     $estes_F_len     = 114;
-    $estes_F_dia     = 29;
+    $estes_F_od      = 29;
+
+// ---------    
+// Tests
+// ---------    
+
+//estes_pro_style_mount_18mm(41.5);
+
+// ------------
+// API
+// ------------
+    
+module estes_pro_style_mount_13mm(body_tube_id=40){
+    _estes_pro_style_mount(
+        body_tube_id   = body_tube_id, 
+        tooth_height   = tooth_height,
+        engine_tube_od = $BT_5_od,
+        engine_od      = $estes_mini_od
+        );}
+
+module estes_pro_style_mount_18mm(body_tube_id=40){
+    _estes_pro_style_mount(
+        body_tube_id   = body_tube_id, 
+        tooth_height   = tooth_height,
+        engine_tube_od = $BT_20_od,
+        engine_od      = $estes_standard_od
+        );
+}
+
+module estes_pro_style_mount_24mm(body_tube_id=40,b_seperate_parts){
+    _estes_pro_style_mount(
+        body_tube_id   = body_tube_id, 
+        tooth_height   = 1.5,
+        engine_tube_od = $BT_50_od,
+        engine_od      = $estes_medium_od,
+        b_seperate_parts = b_seperate_parts
+        );
+}
+
+module estes_pro_style_mount_29mm(body_tube_id=40){
+    _estes_pro_style_mount(
+        body_tube_id   = body_tube_id, 
+        tooth_height   = tooth_height,
+        engine_tube_od = $BT_52H_od,
+        engine_od      = $estes_F_od
+        );}
+    
+module _estes_pro_style_mount(body_tube_id=40,tooth_height=0,engine_tube_od=24.9,engine_od=24,b_seperate_parts=false){
+
+// -----------------------------
+// Constants & Calculations
+// -----------------------------
+
+$fn=75;
+
+num_bumps          = 25;
+cap_height         = 10;
+thread_height      = 7.5;
+center_ring_height = 7.5;
+thread_pitch       = 2;
+tooth_height       = tooth_height;
+
+od_screw           = engine_od+5;
+od_cap             = od_screw+5;
+radius             = (od_cap)/2;
+adapter_height     = center_ring_height + thread_height;
+
+// -----------------------------
+// Engine tube threaded adapter
+// -----------------------------
+
+translate([0,0,cap_height+thread_height]) rotate([180,0,0]) difference(){
+    union(){
+        cylinder(h=center_ring_height,d=body_tube_id,center=false);
+        translate([0,0,center_ring_height-.1]) RodStart(0,0,thread_height,od_screw,thread_pitch,tooth_height=tooth_height);
+    }
+    translate([0,0,-2]) cylinder(h=adapter_height,d=engine_tube_od); // Tube backstop
+    translate([0,0,-.1])  cylinder(h=adapter_height+1,d=engine_od);  // Engine passage
+}
+
+// -----------------------------
+// Endcap retainer
+// -----------------------------
+
+part_seperation = b_seperate_parts ? [50,0,0] : [0,0,0];
+
+translate(part_seperation){
+
+difference() { // ScrewHole
+ScrewHole(outer_diam   = od_screw,    // Make a threaded hole...
+          height       = cap_height,
+          position     = [0, 0, cap_height+2],
+          rotation     = [180,0,0], 
+          pitch        = thread_pitch,
+          tooth_angle  = 30,
+          tolerance    = 0.4,
+          tooth_height = tooth_height)
+
+   difference(){ // Engine exhaust port       
+   union(){ // ... into this
+    cyl(d=od_cap,l=cap_height-.1,fillet1=1,center=false);
+        for (i = [0:num_bumps-1]) {
+            angle = 360/num_bumps * i;
+            rotate(a=angle,v=[0,0,1]) translate([radius-.1,0,1]) 
+               cylinder(d=1,h=cap_height-1.1);
+        }
+    } // union
+    translate([0,0,-.1]) cylinder(d=engine_od-2,h=cap_height+1);
+
+} // difference - Engine exhaust port
+} // difference - ScrewHole
+} // translate  - part seperation
+} // module    
 
 // ================================================
 // Estes Model Rocket Engine Reference - Chat GPT

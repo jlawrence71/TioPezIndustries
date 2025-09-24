@@ -1,7 +1,7 @@
 // Model rocket nose cone by Lutz Paelke (lpaelke)
 // CC BY-NC-SA 3.0
 // Model modified by John Hawley
-// Updated by TIO PEZ to be compatible with RocketMaker.scad - 2025-08
+// Updated/Refactored by TIO PEZ to be compatible with RocketMaker.scad - 2025-08
 
 // NOTE : change fill% of print to alter weight
 
@@ -16,38 +16,81 @@
     Recovery_Hole_Size_Y=6;
 
     // Recovery hole size (X Axis)
-    Recovery_Hole_Size_X=10; // (radius_in*2) - (radius_in*2)/3;
+    Recovery_Hole_Size_X=10; // (radius_id*2) - (radius_id*2)/3;
 
     // Width/Strength of the recovery rod
     Recovery_Rod_Girth=3;
 
 
-module make_nosecone(Diameter_In,Diameter_Out,Length,Cone_Shape,Adaptor_Length,radius_in,radius_out){
+module nosecone(radius_id,radius_od,Cone_Length,Cone_Shape,Adaptor_Length){
 
+// ***********************
+// Shoulder section
+// ***********************
+
+    recovery_shoulder(Adaptor_Length,radius_id);
+         
+// ***************
+// Cone section
+// ***************
+        
+    // ### Conical ###
+    if (Cone_Shape == "conical") {
+        translate([0,0,Adaptor_Length]) cone_conical(R = radius_od, L = Cone_Length, s = Cone_Render_Resolution);
+    }
+
+    // ### Parabolic ###
+    if (Cone_Shape == "parabolic") {
+        translate([0,0,Adaptor_Length]) cone_parabolic(R = radius_od, L = Cone_Length, K = 1, s = Cone_Render_Resolution);
+    }
+    
+    // ### POWER SERIES ###
+    if (Cone_Shape == "power_series") {
+        translate([0,0,Adaptor_Length]) cone_power_series(n = 0.5, R = radius_od, L = Cone_Length, s = Cone_Render_Resolution);
+    }
+    
+    // ### HAACK ###
+    if (Cone_Shape == "haack") {
+        translate([0,0,Adaptor_Length]) cone_haack(C = 0.3333, R = radius_od, L = Cone_Length, s = Cone_Render_Resolution);
+    }
+    
+    // L PAELKE
+    if (Cone_Shape == "lpaelke") {
+        translate ([0,0,Adaptor_Length]) scale([1,1,Length/radius_od])
+        difference() {
+            sphere(r = radius_od, $fn = Cone_Render_Resolution); // Adjust the sphere radius
+            translate ([0,0,-radius_od/2]) cube(size=[2*radius_od,2*radius_od,radius_od],center=true);
+        }
+    }
+    
+
+
+}
+
+// ***********************************************
+// *** Methods to create the various shoulders ***
+// ***********************************************
+
+module recovery_shoulder(Adaptor_Length,radius_id){
 // Length of the adapter section (insertion to rocket body)
-    echo(Adaptor_Length=Adaptor_Length);
 variable_adapter_Length=Adaptor_Length-2-2-2; // 9.25
 
-// ***********************
-// *** Fastner section ***
-// ***********************
-
-    union(){
+   union(){
         difference(){
             difference() {
-            //     cylinder(h=15, r1=radius_in-taper, r2=radius_in,$fn=60);
+            //     cylinder(h=15, r1=radius_id-taper, r2=radius_id,$fn=60);
                 union(){
                     translate ([0,0,variable_adapter_Length+4]) linear_extrude(2){
-                        circle(r=radius_in-1);
+                        circle(r=radius_id-1);
                     }
                     translate ([0,0,variable_adapter_Length+2]) linear_extrude(2){
-                        circle(r=radius_in);
+                        circle(r=radius_id);
                     }
                     translate ([0,0,2]) linear_extrude(variable_adapter_Length){
-                        circle(r=radius_in-1);
+                        circle(r=radius_id-1);
                     }
                     linear_extrude(2){
-                        circle(r=radius_in);
+                        circle(r=radius_id);
                     }
                 }
                 translate ([-Recovery_Hole_Size_X/2,-Recovery_Hole_Size_Y/2,-1]) cube(size = [Recovery_Hole_Size_X,Recovery_Hole_Size_Y,2]);
@@ -58,43 +101,25 @@ variable_adapter_Length=Adaptor_Length-2-2-2; // 9.25
      
         difference() {
             translate([0,Recovery_Hole_Size_Y/2,2]) rotate([90,0,0]) cylinder(h=Recovery_Hole_Size_Y,r=Recovery_Rod_Girth/2,$fn=60);
-            translate ([0,0,-29]) cylinder(h=30,r=radius_in,$fn=60); // Saftey cynlinder to cut off bottom
+            translate ([0,0,-29]) cylinder(h=30,r=radius_id,$fn=60); // Saftey cynlinder to cut off bottom
         }
         translate([-Recovery_Rod_Girth/2,Recovery_Hole_Size_Y/2,0]) rotate([90,0,0]) cube(size = [Recovery_Rod_Girth,2,Recovery_Hole_Size_Y]);
-        
-        // ***************
-        // Cone section
-        // ***************
-        
-        // ### Parabolic ###
-        if (Cone_Shape == "parabolic") {
-            translate([0,0,Adaptor_Length]) cone_parabolic(R = radius_out, L = Length, K = 1, s = Cone_Render_Resolution);
-        }
-        
-        if (Cone_Shape == "power_series") {
-            translate([0,0,Adaptor_Length]) cone_power_series(n = 0.5, R = radius_out, L = Length, s = Cone_Render_Resolution);
-        }
-        
-        if (Cone_Shape == "haack") {
-            translate([0,0,Adaptor_Length]) cone_haack(C = 0.3333, R = radius_out, L = Length, s = Cone_Render_Resolution);
-        }
-        
-        if (Cone_Shape == "lpaelke") {
-            translate ([0,0,Adaptor_Length]) scale([1,1,Length/radius_out]) difference() {
-                sphere(r = radius_out, $fn = Cone_Render_Resolution); // Adjust the sphere radius
-                translate ([0,0,-radius_out/2]) cube(size=[2*radius_out,2*radius_out,radius_out],center=true);
-            }
-        }
     }
-
-
 }
-
 
 // ***********************************************
 // *** Methods to create the various nosecones ***
 // ***********************************************
 
+// TIO PEZ - With help from CHATGPT
+module cone_conical(R = 5, L = 10, s = 500){    
+    tip_flat   = 0.6;            // small flat at the tip (diameter), avoids zero-radius
+    base_r     = max(R, 0.01);
+    tip_r      = tip_flat/2;
+
+    cylinder(h=L, r1=base_r, r2=tip_r, center=false, $fn=s);
+}
+    
 
 // Thank you: ggoss (https://www.thingiverse.com/thing:2004511)
 // For translating the math into OpenSCAD!

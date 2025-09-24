@@ -6,6 +6,7 @@
 //
 // v2.1
 
+Demo();
 
 // ***************
 // *** Library ***
@@ -467,19 +468,19 @@ module PhillipsTip(width=7, thickness=0, straightdepth=0, position=[0,0,0], rota
 
 
 // Create a standard sized metric bolt with hex head and hex key.
-module MetricBolt(diameter, length, tolerance=0.4) {
+module MetricBolt(diameter, length, tolerance=0.4,tooth_height=0,height=10) {
   drive_tolerance = pow(3*tolerance/HexDriveAcrossCorners(diameter),2)
     + 0.75*tolerance;
 
   difference() {
-    cylinder(h=diameter, r=(HexAcrossCorners(diameter)/2-0.5*tolerance), $fn=6);
+    cylinder(h=height, r=(HexAcrossCorners(diameter)/2-0.5*tolerance), $fn=6);
     cylinder(h=diameter,
       r=(HexDriveAcrossCorners(diameter)+drive_tolerance)/2, $fn=6,
       center=true);
   }
-  translate([0,0,diameter-0.01])
+  translate([0,0,height-0.01])
     ScrewThread(diameter, length+0.01, tolerance=tolerance,
-      tip_height=ThreadPitch(diameter), tip_min_fract=0.75);
+      tip_height=ThreadPitch(diameter), tip_min_fract=0.75,tooth_height=tooth_height);
 }
 
 
@@ -519,9 +520,9 @@ module MetricWoodScrew(diameter, length, tolerance=0.4) {
 
 
 // Create a standard sized metric hex nut.
-module MetricNut(diameter, thickness=0, tolerance=0.4) {
+module MetricNut(diameter, thickness=0, tolerance=0.4,tooth_height=0) {
   thickness = (thickness==0) ? NutThickness(diameter) : thickness;
-  ScrewHole(diameter, thickness, tolerance=tolerance)
+  ScrewHole(diameter, thickness, tolerance=tolerance,tooth_height=tooth_height)
     cylinder(h=thickness, r=HexAcrossCorners(diameter)/2-0.5*tolerance, $fn=6);
 }
 
@@ -536,7 +537,7 @@ module MetricWasher(diameter) {
 
 
 // Solid rod on the bottom, external threads on the top.
-module RodStart(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0) {
+module RodStart(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0,tip_height=1,tooth_height=0) {
   // A reasonable default.
   thread_diam = (thread_diam==0) ? 0.75*diameter : thread_diam;
   thread_len = (thread_len==0) ? 0.5*diameter : thread_len;
@@ -546,13 +547,13 @@ module RodStart(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0) {
 
   //translate([0, 0, height])
     ScrewThread(thread_diam, thread_len, thread_pitch,
-      tip_height=thread_pitch, tip_min_fract=0.75);
+      tip_height=tip_height, tip_min_fract=0.75,tooth_height=tooth_height);
 }
 
 
 // Solid rod on the bottom, internal threads on the top.
 // Flips around x-axis after printing to pair with RodStart.
-module RodEnd(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0) {
+module RodEnd(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0,tooth_height=0) {
   // A reasonable default.
   thread_diam  = (thread_diam==0)  ? 0.75*diameter            : thread_diam;
   thread_len   = (thread_len==0)   ? 0.5*diameter             : thread_len;
@@ -560,8 +561,8 @@ module RodEnd(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0) {
 
   containment_cylinder = thread_diam+5;
 
-  ScrewHole(thread_diam, thread_len, [0, 0, height], [180,0,0], thread_pitch)
-    cylinder(r=containment_cylinder/2, h=height, $fn=24*diameter);
+  ScrewHole(thread_diam, thread_len, [0, 0, height], [180,0,0], thread_pitch,tooth_height=tooth_height);
+    //cylinder(r=containment_cylinder/2, h=height, $fn=24*diameter);
 }
 
 
@@ -593,11 +594,11 @@ module RodExtender(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0
 
 
 // Produces a matching set of metric bolts, nuts, and washers.
-module MetricBoltSet(diameter, length, quantity=1) {
+module MetricBoltSet(diameter, length, quantity=1,tooth_height=0) {
   for (i=[0:quantity-1]) {
-    translate([0, i*4*diameter, 0]) MetricBolt(diameter, length);
-    translate([4*diameter, i*4*diameter, 0]) MetricNut(diameter);
-    translate([8*diameter, i*4*diameter, 0]) MetricWasher(diameter);
+    translate([0, i*4*diameter, 0]) MetricBolt(diameter, length,tooth_height=tooth_height,height=10);
+    translate([4*diameter, i*4*diameter, 0]) MetricNut(diameter,thickness=15,tooth_height=tooth_height);
+    //translate([8*diameter, i*4*diameter, 0]) MetricWasher(diameter);
   }
 }
 
@@ -607,7 +608,7 @@ module Demo() {
   //translate([0,-20,0]) MetricBoltSet(4, 8);
   //translate([0,-40,0]) MetricBoltSet(5, 8);
   //translate([0,-60,0]) MetricBoltSet(6, 8);
-  //translate([0,-80,0]) MetricBoltSet(8, 8);
+  //translate([0,0,0]) MetricBoltSet(8, 8);
 
   //translate([0,25,0]) MetricCountersunkBolt(5, 10);
   //translate([23,18,5])
@@ -615,10 +616,36 @@ module Demo() {
   //  CountersunkClearanceHole(5, 8, [7,7,0], [0,0,0])
   //  cube([14, 14, 5]);
 
-  translate([70, -10, 0])
-    RodStart(20, 30);
-  translate([70, 20, 0])
-    RodEnd(20, 30);
+  
+$fn=75;
+
+tube_id            = 41.6;
+engine_tube_od     = 24.9; 
+engine_od          = 24;
+thread_pitch       = 2;
+od_screw           = engine_od+5;
+od_cap             = od_screw+5;
+num_bumps          = 15;
+radius             = (od_cap)/2;
+cap_height         = 15;
+grip_height        = 10;
+f_thread_height    = cap_height;
+center_ring_height = 5;
+shrink_comp        = .5;
+thread_height = 1;
+    
+  
+  //MetricBoltSet(30,15,1,tooth_height=2);
+  
+
+  
+  //RodStart(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0) {
+  //RodStart(0,0,15,30,thread_pitch,thread_height=thread_height);
+  //cylinder(h=5,d=33);
+  
+  //RodEnd(diameter, height, thread_len=0, thread_diam=0, thread_pitch=0)
+  //translate([70, 0, 0])
+  //   RodEnd(5, 15 ,15,30,thread_pitch,thread_height=thread_height);
 
   //translate([70, -45, 0])
   //  MetricWoodScrew(8, 20);
