@@ -1,6 +1,6 @@
 
 ---
-# NOTE: see the 'eBrochure.pdf' document for an electropnic copy of the Build Book on display today.
+# NOTE: see the 'eBrochure.pdf' document for an electronic copy of the Build Book on display today.
 ---
 # TITAN IIIe / Centaur - Voyager 1 & 2
 
