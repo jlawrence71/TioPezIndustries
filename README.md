@@ -1,6 +1,8 @@
-# TITAN IIIe / Centaur - Voyager 1 & 2
 
+---
 # NOTE: see the 'eBrochure.pdf' document for an electropnic copy of the Build Book on display today.
+---
+# TITAN IIIe / Centaur - Voyager 1 & 2
 
 This was built for the DARS (Dallas Area Rocket Society) Classic competition on Saturday September 27 2025  
 
